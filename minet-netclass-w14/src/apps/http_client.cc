@@ -116,17 +116,28 @@ int main(int argc, char * argv[]) {
 
     /* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
+	
+		//minet_select() - lm
     
     /* first read loop -- read headers */
+		
+		//minet_read() - lm
     
     /* examine return code */   
-    //Skip "HTTP/1.0"
-    //remove the '\0'
-    // Normal reply has return code 200
+		
+		//returns either bytes read from rocket or -1 - lm
+			
+		//Skip "HTTP/1.0"
+		//remove the '\0'
+		// Normal reply has return code 200
 
     /* print first part of response */
+		
+		//print char buffer - lm
 
     /* second read loop -- print out the rest of the response */
+	
+		//print char buffer - lm
     
     /*close socket and deinitialize */
 
