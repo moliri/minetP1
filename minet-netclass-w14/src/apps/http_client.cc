@@ -110,6 +110,7 @@ int main(int argc, char * argv[]) {
 	if (minet_write(fd, buf, BUFSIZE) < 0) {
 	    cerr << "Write failed." << endl;
 	    minet_perror("reason:");
+		die(fd);
 	    break;
 	}
 
