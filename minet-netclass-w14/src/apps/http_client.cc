@@ -132,16 +132,39 @@ int main(int argc, char * argv[]) {
 		// Normal reply has return code 200
 
     /* print first part of response */
-		
-		//print char buffer - lm
+	//print char buffer - lm
+	//buf should have the characters in it after using minet_read
+	//i'm not sure how to separate the first and second parts of the response. idk what they mean
+	
+	cout << buf;
 
     /* second read loop -- print out the rest of the response */
-	
-		//print char buffer - lm
+	//print char buffer - lm
+	//put the rest of the response into buf
+	int rc = 0;
+	while (1) {
+		if ((rc = minet_read(fd, buf, BUFSIZE)) < 0) {
+			cerr << "Read failed." << endl;
+			minet_perror("reason:");
+			break;
+		}
+
+		if (rc == 0) {
+			cerr << "Done." << endl;
+			break;
+		}
+
+		if (minet_write(fd, buf, rc) < 0) {
+			cerr << "Write failed." << endl;
+			minet_perror("reason:");
+			break;
+		}
+    }
+	cout << buf;
     
     /*close socket and deinitialize */
-
-
+	die(fd);
+	
     if (ok) {
 	return 0;
     } else {
