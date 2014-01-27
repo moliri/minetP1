@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <string.h>
 
 #define BUFSIZE 1024
 #define FILENAMESIZE 100
@@ -16,13 +17,31 @@ int main(int argc,char *argv[])
   int server_port;
   int sock,sock2;
   struct sockaddr_in sa,sa2;
-  int rc;
+  int rc,fd;
 
   /* parse command line args */
   if (argc != 3)
   {
     fprintf(stderr, "usage: http_server1 k|u port\n");
     exit(-1);
+  }
+  
+  if (toupper(argv[1][0])=='K') {
+    cerr << "Using kernel stack.\n";
+    if (minet_init(MINET_KERNEL)<0) {
+      cerr << "Stack initialization failed.\n";
+      goto err;
+    } else {
+      cerr << "Stack initialized.\n";
+    }
+  } else {
+    cerr << "Using Minet User Level Stack.\n";
+    if (minet_init(MINET_USER)<0) {
+      cerr << "Stack initialization failed.\n";
+      goto err;
+    } else {
+      cerr << "Stack initialized.\n";
+    }
   }
   server_port = atoi(argv[2]);
   if (server_port < 1500)
@@ -32,12 +51,39 @@ int main(int argc,char *argv[])
   }
 
   /* initialize and make socket */
-
+  fd = minet_socket(SOCK_STREAM);
+  
+	if (fd<0) {
+		cerr << "Can't create socket.\n";
+		minet_perror("reason:");
+		goto err;
+     } else {
+     cerr << "Socket created.\n";
+	}
   /* set server address*/
-
+  bzero(&sa,sizeof(sa));
+  sa.sin_family=AF_INET;
+  sa.sin_addr.s_addr=htonl(INADDR_ANY);
+  sa.sin_port=htons(atoi(argv[2]));
   /* bind listening socket */
+    if (minet_bind(fd,&sa)<0) {
+		cerr << "Can't bind socket.\n";
+		minet_perror("reason:");
+		goto err;
+    } else {
+		cerr << "Socket bound.\n";
+    }
 
   /* start listening */
+   int rc = minet_listen(sa,1);
+   if (rc < 0)
+   {
+		cerr << "Can't listen on socket.\n";
+		minet_perror("reason:");
+		goto err;
+	} else {
+		cerr << "Socket Listened.\n";
+	}
 
   /* connection handling loop */
   while(1)
@@ -70,8 +116,29 @@ int handle_connection(int sock2)
   bool ok=true;
 
   /* first read loop -- get request and headers*/
-
+  rc = minet_read(fd,buf,BUFSIZE+1);
+  if (rc<0){
+	cerr << "Read failed.\n";
+	minet_perror("reason:");
+	goto err
+	}
+  if (rc==0){
+	cerr << "Done.\n";
+	goto done;
+	}
+	
+	
+	
   /* parse request to get file name */
+  	/* 
+		SAMPLE HTTP MESSAGE
+		GET /somedir/page.html HTTP/1.1
+		Host: www.someschool.edu
+		Connection: close
+		User-agent: Mozilla/5.0
+		Accept-language: fr
+	*/
+	
   /* Assumption: this is a GET request and filename contains no spaces*/
 
     /* try opening the file */
