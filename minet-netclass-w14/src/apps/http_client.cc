@@ -40,7 +40,7 @@ int main(int argc, char * argv[]) {
    
     struct timeval timeout;
 	int fd = 0;
-    fd_set set;
+    fd_set* set;
 
     /*parse args */
     if (argc != 5) {
@@ -119,42 +119,42 @@ int main(int argc, char * argv[]) {
 		Accept-language: fr
 	*/
 	char mybuf[BUFSIZE];
-	strcpy(mybuf, buf);
+	//strcpy(mybuf, buf);
 	strcat(mybuf, "GET ");
 	strcat(mybuf, server_path); 
 	strcat(mybuf, " HTTP/1.0\r\n"); 
 	strcat(mybuf, "Host: ");
 	strcat(mybuf,  server_name);
-	strcat(mybuf,  "\r\nConnection: keep-alive\r\nUser-agent: Chrome/32.0.1700.76 m\r\nAccept-language: en\r\n");
+	strcat(mybuf,  "\r\nConnection: close \r\n"); //after connection type, User-agent: Chrome/32.0.1700.76 m\r\nAccept-language: en
 	
 	if (minet_write(fd, mybuf, BUFSIZE) < 0) {
 	    cerr << "Write failed." << endl;
 	    minet_perror("reason:");
 		die(fd);
 	}
-	cout << mybuf;
-	
-    /* wait till socket can be read */
+	/* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
 	
-	if (minet_select(fd, 0, 0, 0, NULL) > 0) {
-    
+	set = (fd_set*)malloc(sizeof(BUFSIZE));
+	int filedes = 0;
+	FD_SET(filedes, set);
+	if (minet_select(fd+1, set, set, set, NULL) > 0) {
+   
 	/* first read loop -- read headers */
-		minet_read(fd, buf, BUFSIZE);
-
-    }
-    /* examine return code */ 
-		cout << "hi"; //returns either bytes read from rocket or -1
-			
+	/* examine return code */ 
+		//returns either bytes read from socket or -1
 		//Skip "HTTP/1.0"
 		//remove the '\0'
 		// Normal reply has return code 200
+		minet_read(fd, buf, BUFSIZE);
+
+    }
 
     /* print first part of response */
 	//print char buffer - lm
 	//buf should have the characters in it after using minet_read
 	//i'm not sure how to separate the first and second parts of the response. idk what they mean
-	
+	cout << mybuf;
 	
 
     /* second read loop -- print out the rest of the response */
@@ -172,7 +172,7 @@ int main(int argc, char * argv[]) {
 			break;
 		}
 
-		if (minet_write(fd, buf, rc) < 0) {
+		if (minet_write(fd, mybuf, rc) < 0) {
 			cerr << "Write failed." << endl;
 			minet_perror("reason:");
 			break;
@@ -190,11 +190,11 @@ int main(int argc, char * argv[]) {
     }
 }
 
-int write_n_bytes(int fd, char * buf, int count) {
+int write_n_bytes(int fd, char * mybuf, int count) {
     int rc = 0;
     int totalwritten = 0;
 
-    while ((rc = minet_write(fd, buf + totalwritten, count - totalwritten)) > 0) {
+    while ((rc = minet_write(fd, mybuf + totalwritten, count - totalwritten)) > 0) {
 	totalwritten += rc;
     }
     
