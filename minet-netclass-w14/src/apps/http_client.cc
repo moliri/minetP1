@@ -8,7 +8,7 @@ using namespace std;
 
 //bind to client, connect to server
 
-#define BUFSIZE 1024
+#define BUFSIZE 5454545
 
 int write_n_bytes(int fd, char * buf, int count);
 
@@ -107,9 +107,8 @@ int main(int argc, char * argv[]) {
 		die(fd);
     }
     
-	cerr << "Socket connected." << endl;
+	cerr << "Socket confected." << endl;
     /* send request */
-	
 	/* 
 		SAMPLE HTTP MESSAGE
 		GET /somedir/page.html HTTP/1.1
@@ -119,21 +118,28 @@ int main(int argc, char * argv[]) {
 		Accept-language: fr
 	*/
 	char mybuf[BUFSIZE];
-	//strcpy(mybuf, buf);
+	strcpy(mybuf, buf);
 	strcat(mybuf, "GET ");
 	strcat(mybuf, server_path); 
-	strcat(mybuf, " HTTP/1.0\r\n"); 
+	strcat(mybuf, " HTTP/1.1\r\n"); 
 	strcat(mybuf, "Host: ");
 	strcat(mybuf,  server_name);
-	strcat(mybuf,  "\r\nConnection: close \r\n"); //after connection type, User-agent: Chrome/32.0.1700.76 m\r\nAccept-language: en
+	strcat(mybuf,  "\r\nConnection: close");
+	strcat(mybuf, "\r\nUser-agent: Mozilla/4.0\r\n");
+	strcat(mybuf, "Accept-language: en\r\n\r\n");//after connection type, User-agent: Chrome/32.0.1700.76 m\r\nAccept-language: en
 	
+	//cout << "\n\nGet request stored in mybuf\n\n";
+	//cout << mybuf;
 	if (minet_write(fd, mybuf, BUFSIZE) < 0) {
 	    cerr << "Write failed." << endl;
 	    minet_perror("reason:");
 		die(fd);
 	}
+	
+	//cout << "\n\nwrote mybuf to the socket\n\n";
 	/* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
+	//cout << mybuf;
 	
 	set = (fd_set*)malloc(sizeof(BUFSIZE));
 	int filedes = 0;
@@ -146,7 +152,7 @@ int main(int argc, char * argv[]) {
 		//Skip "HTTP/1.0"
 		//remove the '\0'
 		// Normal reply has return code 200
-		minet_read(fd, buf, BUFSIZE);
+		minet_read(fd, mybuf, BUFSIZE);
 
     }
 
@@ -154,7 +160,8 @@ int main(int argc, char * argv[]) {
 	//print char buffer - lm
 	//buf should have the characters in it after using minet_read
 	//i'm not sure how to separate the first and second parts of the response. idk what they mean
-	cout << mybuf;
+	//cout << "\n\nread from mybuf after selecting socket, first loop\n\n";
+	//cout << mybuf;//print the headers to the error
 	
 
     /* second read loop -- print out the rest of the response */
@@ -178,7 +185,8 @@ int main(int argc, char * argv[]) {
 			break;
 		}
     }
-	cout << buf;
+	//cout << "\n\nsecond read loop, wrote to buf\n\n";
+	cout << buf;//the body of the reply
     
     /*close socket and deinitialize */
 	die(fd);
