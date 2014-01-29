@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 #include <ctype.h>
+#include <string.h>
 
 using namespace std;
 
@@ -187,8 +188,10 @@ int main(int argc, char * argv[]) {
 			break;
 		}
     }
-
-	//cout << mybuf << endl;//the body of the reply
+	string strng = (string) mybuf;
+	unsigned pos = strng.find("<!DOCTYPE html>");
+	strng = strng.substr(pos);
+	cout << strng << endl;//the body of the reply
     
     /*close socket and deinitialize */
 	die(sock);
