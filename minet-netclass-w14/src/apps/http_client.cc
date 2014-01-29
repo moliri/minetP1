@@ -107,7 +107,7 @@ int main(int argc, char * argv[]) {
 		die(fd);
     }
     
-	cerr << "Socket confected." << endl;
+	cerr << "Socket connected." << endl;
     /* send request */
 	/* 
 		SAMPLE HTTP MESSAGE
@@ -126,10 +126,10 @@ int main(int argc, char * argv[]) {
 	strcat(mybuf,  server_name);
 	strcat(mybuf,  "\r\nConnection: close");
 	strcat(mybuf, "\r\nUser-agent: Mozilla/4.0\r\n");
-	strcat(mybuf, "Accept-language: en\r\n\r\n");//after connection type, User-agent: Chrome/32.0.1700.76 m\r\nAccept-language: en
+	strcat(mybuf, "Accept-language: en\r\n\r\n");
 	
 	//cout << "\n\nGet request stored in mybuf\n\n";
-	//cout << mybuf;
+	//cout << mybuf << endl;
 	if (minet_write(fd, mybuf, BUFSIZE) < 0) {
 	    cerr << "Write failed." << endl;
 	    minet_perror("reason:");
@@ -159,7 +159,6 @@ int main(int argc, char * argv[]) {
     /* print first part of response */
 	//print char buffer - lm
 	//buf should have the characters in it after using minet_read
-	//i'm not sure how to separate the first and second parts of the response. idk what they mean
 	//cout << "\n\nread from mybuf after selecting socket, first loop\n\n";
 	//cout << mybuf;//print the headers to the error
 	
@@ -185,8 +184,8 @@ int main(int argc, char * argv[]) {
 			break;
 		}
     }
-	//cout << "\n\nsecond read loop, wrote to buf\n\n";
-	cout << buf;//the body of the reply
+
+	cout << mybuf << endl;//the body of the reply
     
     /*close socket and deinitialize */
 	die(fd);
