@@ -39,7 +39,7 @@ int main(int argc, char * argv[]) {
     char * endheaders = NULL;
    
     struct timeval timeout;
-	int fd = 0;
+	//int fd = 0;  fd in main function should actually be the variable sock, declared above
     fd_set* set;
 
     /*parse args */
@@ -66,11 +66,11 @@ int main(int argc, char * argv[]) {
     
 
 	/* create socket */
-	fd = minet_socket(SOCK_STREAM);
-	if (fd < 0) {
+	sock = minet_socket(SOCK_STREAM);
+	if (sock < 0) {
 		cerr << "Can't create socket." << endl;
 		minet_perror("reason:");
-		die(fd);
+		die(sock);
     } 
 	cerr << "Socket created." << endl;
 	
@@ -80,7 +80,7 @@ int main(int argc, char * argv[]) {
 	
 	if (site == 0) {
 		cerr << "Unknown host." << endl;
-		die(fd);
+		die(sock);
     }
 	
 	/* set address */
@@ -95,16 +95,16 @@ int main(int argc, char * argv[]) {
     client_sa.sin_port = htons(0);
 
     /* connect socket */
-	if (minet_bind(fd, &client_sa) < 0) {
+	if (minet_bind(sock, &client_sa) < 0) {
 		cerr << "Can't bind socket." << endl;
 		minet_perror("reason:");
-		die(fd);
+		die(sock);
     }
 	 cerr << "Socket bound" << endl;
-	if (minet_connect(fd, &server_sa) < 0) {
+	if (minet_connect(sock, &server_sa) < 0) {
 		cerr << "Can't connect socket." << endl;
 		minet_perror("reason:");
-		die(fd);
+		die(sock);
     }
     
 	cerr << "Socket connected." << endl;
@@ -130,10 +130,10 @@ int main(int argc, char * argv[]) {
 	
 	//cout << "\n\nGet request stored in mybuf\n\n";
 	//cout << mybuf << endl;
-	if (minet_write(fd, mybuf, BUFSIZE) < 0) {
+	if (minet_write(sock, mybuf, BUFSIZE) < 0) {
 	    cerr << "Write failed." << endl;
 	    minet_perror("reason:");
-		die(fd);
+		die(sock);
 	}
 	
 	//cout << "\n\nwrote mybuf to the socket\n\n";
@@ -142,9 +142,9 @@ int main(int argc, char * argv[]) {
 	//cout << mybuf;
 	
 	set = (fd_set*)malloc(sizeof(BUFSIZE));
-	int filedes = 0;
-	FD_SET(filedes, set);
-	if (minet_select(fd+1, set, set, set, NULL) > 0) {
+	FD_ZERO(set);
+	FD_SET(sock, set);
+	if (minet_select(sock+1, set, NULL, NULL, NULL) > 0) {
    
 	/* first read loop -- read headers */
 	/* examine return code */ 
@@ -152,9 +152,12 @@ int main(int argc, char * argv[]) {
 		//Skip "HTTP/1.0"
 		//remove the '\0'
 		// Normal reply has return code 200
-		minet_read(fd, mybuf, BUFSIZE);
+		minet_read(sock, mybuf, BUFSIZE);
 
     }
+	else {
+		cerr << "Select failed." << endl;
+	}
 
     /* print first part of response */
 	//print char buffer - lm
@@ -167,7 +170,7 @@ int main(int argc, char * argv[]) {
 	//print char buffer - lm
 	//put the rest of the response into buf
 	while (1) {
-		if ((rc = minet_read(fd, buf, BUFSIZE)) < 0) {
+		if ((rc = minet_read(sock, buf, BUFSIZE)) < 0) {
 			cerr << "Read failed." << endl;
 			minet_perror("reason:");
 			break;
@@ -178,17 +181,17 @@ int main(int argc, char * argv[]) {
 			break;
 		}
 
-		if (minet_write(fd, mybuf, rc) < 0) {
+		if (minet_write(sock, mybuf, rc) < 0) {
 			cerr << "Write failed." << endl;
 			minet_perror("reason:");
 			break;
 		}
     }
 
-	cout << mybuf << endl;//the body of the reply
+	//cout << mybuf << endl;//the body of the reply
     
     /*close socket and deinitialize */
-	die(fd);
+	die(sock);
 	
     if (ok) {
 	return 0;
