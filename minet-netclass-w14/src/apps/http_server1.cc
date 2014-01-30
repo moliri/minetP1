@@ -130,6 +130,17 @@ int handle_connection(int sock)  //sock = cfd
 	cout << "Accepting socket. \n";
   fd2 = minet_accept(sock, &client_sa);//not sure if this should be sa or sa2 -jg; should be sa, aka the client one, not the server - lm
   /* first read loop -- get request and headers*/
+  
+  cout << "Reading from socket."  << endl;
+  rc = minet_read(fd2,buf,BUFSIZE+1);
+  if (rc<0){
+	cerr << "Read failed.\n";
+	minet_perror("reason:");
+	die(fd2);
+	}
+  if (rc==0){
+	cerr << "Done.\n";
+	}
 
 /*  
 	cout << "Setting stuff for select\n";
@@ -153,13 +164,18 @@ int handle_connection(int sock)  //sock = cfd
 	*/
 	
   /* parse request to get file name */
-	string str = (string) buf;
-	unsigned pos = str.find("GET ");
-	str = str.substr(pos);
-	pos = str.find("HTTP");
-	string path = str.substr(0,pos);
+	string mybuf = (string)buf;
+	unsigned pos1 = mybuf.find("GET "); //position is greater than string length
+	//GET path HTTP/1.0\r\n\r\n
+	//   pos1           pos2 
+	//int bufLength = mybuf.length();
 	
-	cout << "Path is " << path << endl;
+	mybuf = mybuf.substr(pos1/*, (bufLength+1)*/);
+	//unsigned pos2 = pos1+4;
+	unsigned pos3= mybuf.find(" HTTP");
+	string path = mybuf.substr(pos1+4, pos3-4);
+	
+	//cout << "Path is " << path << endl;
 	
   /* Assumption: this is a GET request and filename contains no spaces*/
 	
