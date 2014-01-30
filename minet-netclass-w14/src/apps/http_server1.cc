@@ -4,13 +4,22 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <iostream>
+using namespace std;
 
-#define BUFSIZE 1024
+
+#define BUFSIZE 383484
 #define FILENAMESIZE 100
 
 int handle_connection(int);
 int writenbytes(int,char *,int);
 int readnbytes(int,char *,int);
+
+void die(int fd) {
+    minet_close(fd);
+    minet_deinit();
+    exit(0);
+}
 
 int main(int argc,char *argv[])
 {
@@ -30,7 +39,7 @@ int main(int argc,char *argv[])
     cerr << "Using kernel stack.\n";
     if (minet_init(MINET_KERNEL)<0) {
       cerr << "Stack initialization failed.\n";
-      goto err;
+      die(0);
     } else {
       cerr << "Stack initialized.\n";
     }
@@ -38,7 +47,7 @@ int main(int argc,char *argv[])
     cerr << "Using Minet User Level Stack.\n";
     if (minet_init(MINET_USER)<0) {
       cerr << "Stack initialization failed.\n";
-      goto err;
+      die(0);
     } else {
       cerr << "Stack initialized.\n";
     }
@@ -56,7 +65,7 @@ int main(int argc,char *argv[])
 	if (fd<0) {
 		cerr << "Can't create socket.\n";
 		minet_perror("reason:");
-		goto err;
+		die(fd);
      } else {
      cerr << "Socket created.\n";
 	}
@@ -69,18 +78,18 @@ int main(int argc,char *argv[])
     if (minet_bind(fd,&sa)<0) {
 		cerr << "Can't bind socket.\n";
 		minet_perror("reason:");
-		goto err;
+		die(fd);
     } else {
 		cerr << "Socket bound.\n";
     }
 
   /* start listening */
-   int rc = minet_listen(sa,1);
+   rc = minet_listen(fd,1);
    if (rc < 0)
    {
 		cerr << "Can't listen on socket.\n";
 		minet_perror("reason:");
-		goto err;
+		die(fd);
 	} else {
 		cerr << "Socket Listened.\n";
 	}
@@ -89,16 +98,18 @@ int main(int argc,char *argv[])
   while(1)
   {
     /* handle connections */
-    rc = handle_connection(sock2);
+    rc = handle_connection(fd);
   }
 }
 
-int handle_connection(int sock2)
+int handle_connection(int sock)
 {
+	cout << "Handling Connection\n";
   char filename[FILENAMESIZE+1];
   int rc;
   int fd;
   struct stat filestat;
+  struct sockaddr_in* sa;
   char buf[BUFSIZE+1];
   char *headers;
   char *endheaders;
@@ -114,33 +125,40 @@ int handle_connection(int sock2)
                          "<h2>404 FILE NOT FOUND</h2>\n"
                          "</body></html>\n";
   bool ok=true;
-
+  fd_set* set;
+	cout << "Accepting Socket\n";
+  fd = minet_accept(sock, sa);//not sure if this should be sa or sa2 -jg
   /* first read loop -- get request and headers*/
-  rc = minet_read(fd,buf,BUFSIZE+1);
+	cout << "Setting stuff for select\n";
+	set = (fd_set*)malloc(sizeof(BUFSIZE));
+	FD_ZERO(set);
+	FD_SET(sock, set);
+	if (minet_select(sock+1, set, NULL, NULL, NULL) > 0) {
+		cout << "Reading from socket\n";
+		rc = minet_read(fd,buf,BUFSIZE+1);
+		cout << "read from socket\n";
+	}
   if (rc<0){
 	cerr << "Read failed.\n";
 	minet_perror("reason:");
-	goto err
+	die(fd);
 	}
   if (rc==0){
 	cerr << "Done.\n";
-	goto done;
 	}
 	
-	
-	
   /* parse request to get file name */
-  	/* 
-		SAMPLE HTTP MESSAGE
-		GET /somedir/page.html HTTP/1.1
-		Host: www.someschool.edu
-		Connection: close
-		User-agent: Mozilla/5.0
-		Accept-language: fr
-	*/
+	string str = (string) buf;
+	unsigned pos = str.find("GET ");
+	str = str.substr(pos);
+	pos = str.find("HTTP");
+	string path = str.substr(0,pos);
+	
+	cout << "Path is " << path << endl;
 	
   /* Assumption: this is a GET request and filename contains no spaces*/
-
+	
+	
     /* try opening the file */
 
   /* send response */
@@ -189,4 +207,3 @@ int writenbytes(int fd,char *str,int size)
   else
     return totalwritten;
 }
-
