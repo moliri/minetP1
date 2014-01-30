@@ -25,7 +25,7 @@ int main(int argc,char *argv[])
 {
   int server_port;
   int sock,sock2;
-  struct sockaddr_in sa,sa2;
+  struct sockaddr_in server_sa,client_sa;
   int rc,fd;
 
   /* parse command line args */
@@ -70,12 +70,13 @@ int main(int argc,char *argv[])
      cerr << "Socket created.\n";
 	}
   /* set server address*/
-  bzero(&sa,sizeof(sa));
-  sa.sin_family=AF_INET;
-  sa.sin_addr.s_addr=htonl(INADDR_ANY);
-  sa.sin_port=htons(atoi(argv[2]));
+  bzero(&server_sa,sizeof(server_sa));
+  server_sa.sin_family=AF_INET;
+  server_sa.sin_addr.s_addr=htonl(INADDR_ANY);
+  server_sa.sin_port=htons(atoi(argv[2]));
+  
   /* bind listening socket */
-    if (minet_bind(fd,&sa)<0) {
+    if (minet_bind(fd,&server_sa)<0) {
 		cerr << "Can't bind socket.\n";
 		minet_perror("reason:");
 		die(fd);
@@ -91,7 +92,7 @@ int main(int argc,char *argv[])
 		minet_perror("reason:");
 		die(fd);
 	} else {
-		cerr << "Socket Listened.\n";
+		cerr << "Socket listened.\n";
 	}
 
   /* connection handling loop */
@@ -102,14 +103,14 @@ int main(int argc,char *argv[])
   }
 }
 
-int handle_connection(int sock)
+int handle_connection(int sock)  //sock = cfd 
 {
-	cout << "Handling Connection\n";
+	cout << "Handling connection. \n";
   char filename[FILENAMESIZE+1];
   int rc;
-  int fd;
+  int fd2;
   struct stat filestat;
-  struct sockaddr_in* sa;
+  struct sockaddr_in client_sa;
   char buf[BUFSIZE+1];
   char *headers;
   char *endheaders;
@@ -126,26 +127,30 @@ int handle_connection(int sock)
                          "</body></html>\n";
   bool ok=true;
   fd_set* set;
-	cout << "Accepting Socket\n";
-  fd = minet_accept(sock, sa);//not sure if this should be sa or sa2 -jg
+	cout << "Accepting socket. \n";
+  fd2 = minet_accept(sock, &client_sa);//not sure if this should be sa or sa2 -jg; should be sa, aka the client one, not the server - lm
   /* first read loop -- get request and headers*/
+
+/*  
 	cout << "Setting stuff for select\n";
 	set = (fd_set*)malloc(sizeof(BUFSIZE));
+	
 	FD_ZERO(set);
 	FD_SET(sock, set);
 	if (minet_select(sock+1, set, NULL, NULL, NULL) > 0) {
 		cout << "Reading from socket\n";
-		rc = minet_read(fd,buf,BUFSIZE+1);
+		rc = minet_read(fd2,buf,BUFSIZE+1);
 		cout << "read from socket\n";
 	}
   if (rc<0){
 	cerr << "Read failed.\n";
 	minet_perror("reason:");
-	die(fd);
+	die(fd2);
 	}
   if (rc==0){
 	cerr << "Done.\n";
 	}
+	*/
 	
   /* parse request to get file name */
 	string str = (string) buf;

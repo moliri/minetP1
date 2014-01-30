@@ -191,16 +191,18 @@ int main(int argc, char * argv[]) {
 	string strng = (string) mybuf;
 	unsigned pos = strng.find("<!DOCTYPE html>");
 	strng = strng.substr(pos);
-	cout << strng << endl;//the body of the reply
+	
+	if (ok) {
+		cout << strng << endl;//the body of the reply
+		return 0;
+    } 
+	else {
+		cerr << strng << endl;
+		return -1;
+    }
     
     /*close socket and deinitialize */
 	die(sock);
-	
-    if (ok) {
-	return 0;
-    } else {
-	return -1;
-    }
 }
 
 int write_n_bytes(int fd, char * mybuf, int count) {
