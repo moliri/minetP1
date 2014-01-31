@@ -1,3 +1,5 @@
+///Authors: Jordan Geltner and Leesha Maliakal (January 30, 2014)
+///Errors: server has issues opening files, and cuts client's connection when writing to client socket
 #include "minet_socket.h"
 #include <stdlib.h>
 #include <ctype.h>
