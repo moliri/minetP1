@@ -16,6 +16,7 @@ int handle_connection(int);
 int writenbytes(int,char *,int);
 int readnbytes(int,char *,int);
 
+//copied from http_client.cc to help close the file descriptor/sockets
 void die(int fd) {
     minet_close(fd);
     minet_deinit();
@@ -147,39 +148,15 @@ int handle_connection(int sock)  //sock = server sock
   if (rc==0){
 	cerr << "Done.\n";
 	}
-
-/*  
-	cout << "Setting stuff for select\n";
-	set = (fd_set*)malloc(sizeof(BUFSIZE));
 	
-	FD_ZERO(set);
-	FD_SET(sock, set);
-	if (minet_select(sock+1, set, NULL, NULL, NULL) > 0) {
-		cout << "Reading from socket\n";
-		rc = minet_read(fd2,buf,BUFSIZE+1);
-		cout << "read from socket\n";
-	}
-  if (rc<0){
-	cerr << "Read failed.\n";
-	minet_perror("reason:");
-	die(fd2);
-	}
-  if (rc==0){
-	cerr << "Done.\n";
-	}
-	*/
-	
-  // /* parse request to get file name */
+	/* parse request to get file name */
 	string mybuf = (string)buf;
 	unsigned pos1 = mybuf.find("GET "); //position is greater than string length
 	char* readfile;
 	readfile  = (char*)malloc(sizeof(BUFSIZE));
-	//GET path HTTP/1.0\r\n\r\n
-	//   pos1           pos2 
-	//int bufLength = mybuf.length();
 	
+	//we had some substring errors so we checked their positions
 	if(pos1<0) {
-		
 		cerr << "First substring position not right" << endl;
 		strcpy(tmp_header, notok_response);
 		die(sock);
@@ -196,58 +173,35 @@ int handle_connection(int sock)  //sock = server sock
 			die(sock);
 		}
 		else {
-			
+			//if all the substrints are right, we can take the path from the get request
 			string path = mybuf.substr(pos1+4, pos3-4);
 			cout << "Second substring ok." << endl;
 			cerr << path << endl;
 			char * mypath;
 			mypath  = (char*)malloc(100);
 			strcpy(mypath,path.c_str());
-			
-			//cout << "Path is " << path << endl;
-			
+						
 			/* Assumption: this is a GET request and filename contains no spaces
-			
 			
 			/* try opening the file */
 			cerr << "Opening file\n";
 			if((sock=open(mypath, O_RDONLY)) < 0) {
 				cerr << "Opening failed.\n";
+				//put the bad response into the header buffer
 				strcpy(tmp_header, notok_response);
 				ok = false;
 			}else {
+				//put the good response into the header buffer
 				strcpy(tmp_header, ok_response_f);
 				cerr << "Reading file\n";
+				//read from the file into the body buffer
 				readnbytes(sock, readfile, BUFSIZE);
 				cout << readfile << endl;
 			}
-			
-			// string line;
-			// fstream myfile;
-			// myfile.open(path);
-			// if (myfile.is_open()) {
-				// cerr << "file opened\n";
-				// while (getline(myfile, line)) {
-					
-					// output+= line;
-					// output+="\n";
-				// }
-				// strcpy(tmp_header, ok_response_f);
-			// }
-			
-			// else{
-				// cerr << "file not opened\n";
-				// strcpy(tmp_header, notok_response);
-				// ok = false;
-			// }
-			// if (output.length() > 0) {
-				// cerr << output << endl;
-			// }
 		}
 	}
 	
   /* send response */
- // char * outbuf = new char[output.length()+1];
   
   cout << "About to write." << endl;
   cout << ok << endl;
@@ -257,12 +211,10 @@ int handle_connection(int sock)  //sock = server sock
 	minet_write(fd2, tmp_header, BUFSIZE);
 
     /* send file */
-	//strcpy(outbuf,output.c_str());
 	minet_write(fd2, readfile, BUFSIZE);
   }
   else // send error response
   {
-	cout << "Sending bad message to client (fuck you)" << endl;
 	if (minet_write(fd2, tmp_header, strlen(tmp_header)) < 0) {
 		cerr <<"Write failed" << endl;
 		minet_perror("reason: ");
@@ -271,12 +223,6 @@ int handle_connection(int sock)  //sock = server sock
   }
 	
   /* close socket and free space */
-	//delete [] outbuf;
-	
-
-// cerr << "JUST WRITE." << endl;
-// minet_write(fd2, notok_response, BUFSIZE);
-// cerr << "WRITTEN." << endl;
 	die(fd2);
 
   if (ok)

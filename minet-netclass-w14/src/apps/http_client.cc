@@ -84,12 +84,14 @@ int main(int argc, char * argv[]) {
 		die(sock);
     }
 	
-	/* set address */
+	/* set addresses */
+	//server socket address
 	bzero(&server_sa, sizeof(server_sa));
     server_sa.sin_family = AF_INET;
     memcpy((void *)(&(server_sa.sin_addr)), site->h_addr, site->h_length);
     server_sa.sin_port = htons(atoi(argv[3]));
 	
+	//client socket address
 	bzero(&client_sa, sizeof(client_sa));
     client_sa.sin_family = AF_INET;
     client_sa.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -110,14 +112,8 @@ int main(int argc, char * argv[]) {
     
 	cerr << "Socket connected." << endl;
     /* send request */
-	/* 
-		SAMPLE HTTP MESSAGE
-		GET /somedir/page.html HTTP/1.1
-		Host: www.someschool.edu
-		Connection: close
-		User-agent: Mozilla/5.0
-		Accept-language: fr
-	*/
+	
+	//mybuf will hold the get request
 	char mybuf[BUFSIZE];
 	strcpy(mybuf, buf);
 	strcat(mybuf, "GET ");
@@ -129,19 +125,17 @@ int main(int argc, char * argv[]) {
 	strcat(mybuf, "\r\nUser-agent: Mozilla/4.0\r\n");
 	strcat(mybuf, "Accept-language: en\r\n\r\n");
 	
-	//cout << "\n\nGet request stored in mybuf\n\n";
-	//cout << mybuf << endl;
+	//write the get request to the socket
 	if (minet_write(sock, mybuf, BUFSIZE) < 0) {
 	    cerr << "Write failed." << endl;
 	    minet_perror("reason:");
 		die(sock);
 	}
 	
-	//cout << "\n\nwrote mybuf to the socket\n\n";
 	/* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
-	//cout << mybuf;
 	
+	//allocate memory for the current set of file descriptors
 	set = (fd_set*)malloc(sizeof(BUFSIZE));
 	FD_ZERO(set);
 	FD_SET(sock, set);
@@ -160,16 +154,7 @@ int main(int argc, char * argv[]) {
 		cerr << "Select failed." << endl;
 	}
 
-    /* print first part of response */
-	//print char buffer - lm
-	//buf should have the characters in it after using minet_read
-	//cout << "\n\nread from mybuf after selecting socket, first loop\n\n";
-	//cout << mybuf;//print the headers to the error
-	
-
-    /* second read loop -- print out the rest of the response */
-	//print char buffer - lm
-	//put the rest of the response into buf
+	//read the info from the socket that was sent by the server
 	while (1) {
 		if ((rc = minet_read(sock, buf, BUFSIZE)) < 0) {
 			cerr << "Read failed." << endl;
@@ -188,6 +173,8 @@ int main(int argc, char * argv[]) {
 			break;
 		}
     }
+	
+	//manage the string to find the html aspect
 	string strng = (string) mybuf;
 	unsigned pos = strng.find("<!DOCTYPE html>");
 	strng = strng.substr(pos);
