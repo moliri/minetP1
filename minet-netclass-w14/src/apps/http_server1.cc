@@ -100,16 +100,18 @@ int main(int argc,char *argv[])
 	}
 
   /* connection handling loop */
+  cout << "Handling connection. \n";
   while(1)
   {
     /* handle connections */
     rc = handle_connection(fd);
   }
+  cout << "Connection handled\n";
+  minet_close(fd);
 }
 
 int handle_connection(int sock)  //sock = server sock
 {
-	cout << "Handling connection. \n";
   char filename[FILENAMESIZE+1];
   int rc;
   int fd2; //ends up holding client sock
@@ -125,10 +127,10 @@ int handle_connection(int sock)  //sock = server sock
                       "Content-length: %d \r\n\r\n";
   char ok_response[100];
   char *notok_response = "HTTP/1.0 404 FILE NOT FOUND\r\n"\
-                         "Content-type: text/html\r\n\r\n"\
-                         "<html><body bgColor=black text=white>\n"\
+                         "Content-type: text/html\r\n\r\n";
+                         /*"<html><body bgColor=black text=white>\n"\
                          "<h2>404 FILE NOT FOUND</h2>\n"
-                         "</body></html>\n";
+                         "</body></html>\n";*/
   bool ok=true;
   char tmp_header[BUFSIZE];
   string output;
@@ -154,8 +156,8 @@ int handle_connection(int sock)  //sock = server sock
 	/* parse request to get file name */
 	string mybuf = (string)buf;
 	unsigned pos1 = mybuf.find("GET "); //position is greater than string length
-	char* readfile;
-	readfile  = (char*)malloc(sizeof(BUFSIZE));
+	char readfile[BUFSIZE];
+//	readfile  = (char*)malloc(sizeof(BUFSIZE));
 	
 	//we had some substring errors so we checked their positions
 	if(pos1<0) {
@@ -198,7 +200,8 @@ int handle_connection(int sock)  //sock = server sock
 				cerr << "Reading file\n";
 				//read from the file into the body buffer
 				readnbytes(sock, readfile, BUFSIZE);
-				cout << readfile << endl;
+				cout << "file read\n";
+				//cout << readfile << endl;
 			}
 		}
 	}
@@ -206,26 +209,31 @@ int handle_connection(int sock)  //sock = server sock
   /* send response */
   
   cout << "About to write." << endl;
-  cout << ok << endl;
+  //cout << ok << endl;
   if (ok)
   {
     /* send headers */
+	cout << "Sending good header\n";
 	minet_write(fd2, tmp_header, BUFSIZE);
 
+	cout << "good header sent, sending file\n";
     /* send file */
 	minet_write(fd2, readfile, BUFSIZE);
   }
   else // send error response
   {
-	if (minet_write(fd2, tmp_header, strlen(tmp_header)) < 0) {
+	cout << "Sending bad header\n";
+	if (writenbytes(fd2, tmp_header, strlen(tmp_header)) < 0) {
 		cerr <<"Write failed" << endl;
 		minet_perror("reason: ");
 	}
-	cout << "Sent " << tmp_header << " to client\n";
+	cout << "Sent bad header to client\n";
   }
+  cout << "Write finished\n\n\n";//, closing socket\n";
 	
   /* close socket and free space */
-	die(fd2);
+	//minet_close(fd2);
+	//cout << "socket closed, returning\n";
 
   if (ok)
     return 0;

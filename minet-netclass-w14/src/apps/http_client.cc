@@ -131,6 +131,7 @@ int main(int argc, char * argv[]) {
 	    minet_perror("reason:");
 		die(sock);
 	}
+	cerr << "Get request sent\n";
 	
 	/* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
@@ -147,34 +148,37 @@ int main(int argc, char * argv[]) {
 		//Skip "HTTP/1.0"
 		//remove the '\0'
 		// Normal reply has return code 200
+		cout << "reading headers into mybuf\n";
 		minet_read(sock, mybuf, BUFSIZE);
 
     }
 	else {
 		cerr << "Select failed." << endl;
 	}
+	strcpy(buf,mybuf);
 
+	cout << "entering read loop\n";
 	//read the info from the socket that was sent by the server
 	while (1) {
+		cout << "reading.\n";
 		if ((rc = minet_read(sock, buf, BUFSIZE)) < 0) {
 			cerr << "Read failed." << endl;
 			minet_perror("reason:");
 			break;
 		}
-
+		cout << "reading..\n";
 		if (rc == 0) {
 			cerr << "Done." << endl;
 			break;
 		}
-
-		if (minet_write(sock, mybuf, rc) < 0) {
+		cout << "reading...\n";
+		if (minet_write(sock, buf, BUFSIZE) < 0) {
 			cerr << "Write failed." << endl;
 			minet_perror("reason:");
 			break;
 		}
     }
-	
-	//manage the string to find the html aspect
+	cout << "exiting read loop\n";
 	string strng = (string) mybuf;
 	unsigned pos = strng.find("<!DOCTYPE html>");
 	strng = strng.substr(pos);
