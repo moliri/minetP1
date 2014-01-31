@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 
@@ -126,10 +127,15 @@ int handle_connection(int sock)  //sock = cfd
                          "<h2>404 FILE NOT FOUND</h2>\n"
                          "</body></html>\n";
   bool ok=true;
+  char tmp_header[BUFSIZE];
+  string output;
   fd_set* set;
 	cout << "Accepting socket. \n";
   fd2 = minet_accept(sock, &client_sa);//not sure if this should be sa or sa2 -jg; should be sa, aka the client one, not the server - lm
   /* first read loop -- get request and headers*/
+  if (fd2 < 0) {
+	cerr << "Accepting socket failed.";
+  }
   
   cout << "Reading from socket."  << endl;
   rc = minet_read(fd2,buf,BUFSIZE+1);
@@ -163,37 +169,105 @@ int handle_connection(int sock)  //sock = cfd
 	}
 	*/
 	
-  /* parse request to get file name */
+  // /* parse request to get file name */
 	string mybuf = (string)buf;
 	unsigned pos1 = mybuf.find("GET "); //position is greater than string length
 	//GET path HTTP/1.0\r\n\r\n
 	//   pos1           pos2 
 	//int bufLength = mybuf.length();
 	
-	mybuf = mybuf.substr(pos1/*, (bufLength+1)*/);
-	//unsigned pos2 = pos1+4;
-	unsigned pos3= mybuf.find(" HTTP");
-	string path = mybuf.substr(pos1+4, pos3-4);
+	if(pos1<0) {
+		
+		cerr << "First substring position not right" << endl;
+		strcpy(tmp_header, notok_response);
+		die(fd2);
+	}
+	else {
+		mybuf = mybuf.substr(pos1/*, (bufLength+1)*/);
+		cerr << mybuf << endl;
+		//unsigned pos2 = pos1+4;
+		unsigned pos3= mybuf.find(" HTTP");
+		cout << "First substring ok" << endl;
+		if (pos3 < 0) {
+			cerr << "Second substring position not right" << endl;
+			strcpy(tmp_header, notok_response);
+			die(fd2);
+		}
+		else {
+			
+			string path = mybuf.substr(pos1+4, pos3-4);
+			cout << "Second substring ok." << endl;
+			cerr << path << endl;
+			/*char * mypath;
+			strcpy(mypath,path.c_str());
+			
+			//cout << "Path is " << path << endl;
+			
+			/* Assumption: this is a GET request and filename contains no spaces
+			
+			
+			/* try opening the file 
+			cerr << "Opening file\n";
+			if((fd2=open(mypath, O_RDONLY)) < 0) {
+				ok = false;
+			}*/
+			string line;
+			fstream myfile;
+			myfile.open(path);
+			if (myfile.is_open()) {
+				cerr << "file opened\n";
+				while (getline(myfile, line)) {
+					
+					output+= line;
+					output+="\n";
+				}
+				strcpy(tmp_header, ok_response_f);
+			}
+			
+			else{
+				cerr << "file not opened\n";
+				strcpy(tmp_header, notok_response);
+				ok = false;
+			}
+			if (output.length() > 0) {
+				cerr << output << endl;
+			}
+		}
+	}
 	
-	//cout << "Path is " << path << endl;
-	
-  /* Assumption: this is a GET request and filename contains no spaces*/
-	
-	
-    /* try opening the file */
-
   /* send response */
+  char * outbuf = new char[output.length()+1];
+  
+  cout << "About to write." << endl;
+  cout << ok << endl;
   if (ok)
   {
     /* send headers */
+	minet_write(fd2, tmp_header, BUFSIZE);
 
     /* send file */
+	strcpy(outbuf,output.c_str());
+	minet_write(fd2, outbuf, BUFSIZE);
   }
   else // send error response
   {
+	cout << "is it going to work?" << endl;
+	if (minet_write(fd2, tmp_header, strlen(tmp_header)) < 0) {
+		cerr <<"Write failed" << endl;
+		minet_perror("reason: ");
+		die(fd2);
+	}
+	cout << "YESSSSSS" <<endl;
   }
+	
+  /* close fd2et and free space */
+	delete [] outbuf;
+	die(fd2);
 
-  /* close socket and free space */
+// cerr << "JUST WRITE." << endl;
+// minet_write(fd2, notok_response, BUFSIZE);
+// cerr << "WRITTEN." << endl;
+
 
   if (ok)
     return 0;

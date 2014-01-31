@@ -9,7 +9,7 @@ using namespace std;
 
 //bind to client, connect to server
 
-#define BUFSIZE 5454545
+#define BUFSIZE 383484
 
 int write_n_bytes(int fd, char * buf, int count);
 
