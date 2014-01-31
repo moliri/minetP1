@@ -104,12 +104,12 @@ int main(int argc,char *argv[])
   }
 }
 
-int handle_connection(int sock)  //sock = cfd 
+int handle_connection(int sock)  //sock = server sock
 {
 	cout << "Handling connection. \n";
   char filename[FILENAMESIZE+1];
   int rc;
-  int fd2;
+  int fd2; //ends up holding client sock
   struct stat filestat;
   struct sockaddr_in client_sa;
   char buf[BUFSIZE+1];
@@ -172,6 +172,8 @@ int handle_connection(int sock)  //sock = cfd
   // /* parse request to get file name */
 	string mybuf = (string)buf;
 	unsigned pos1 = mybuf.find("GET "); //position is greater than string length
+	char* readfile;
+	readfile  = (char*)malloc(sizeof(BUFSIZE));
 	//GET path HTTP/1.0\r\n\r\n
 	//   pos1           pos2 
 	//int bufLength = mybuf.length();
@@ -180,7 +182,7 @@ int handle_connection(int sock)  //sock = cfd
 		
 		cerr << "First substring position not right" << endl;
 		strcpy(tmp_header, notok_response);
-		die(fd2);
+		die(sock);
 	}
 	else {
 		mybuf = mybuf.substr(pos1/*, (bufLength+1)*/);
@@ -191,14 +193,15 @@ int handle_connection(int sock)  //sock = cfd
 		if (pos3 < 0) {
 			cerr << "Second substring position not right" << endl;
 			strcpy(tmp_header, notok_response);
-			die(fd2);
+			die(sock);
 		}
 		else {
 			
 			string path = mybuf.substr(pos1+4, pos3-4);
 			cout << "Second substring ok." << endl;
 			cerr << path << endl;
-			/*char * mypath;
+			char * mypath;
+			mypath  = (char*)malloc(100);
 			strcpy(mypath,path.c_str());
 			
 			//cout << "Path is " << path << endl;
@@ -206,37 +209,45 @@ int handle_connection(int sock)  //sock = cfd
 			/* Assumption: this is a GET request and filename contains no spaces
 			
 			
-			/* try opening the file 
+			/* try opening the file */
 			cerr << "Opening file\n";
-			if((fd2=open(mypath, O_RDONLY)) < 0) {
-				ok = false;
-			}*/
-			string line;
-			fstream myfile;
-			myfile.open(path);
-			if (myfile.is_open()) {
-				cerr << "file opened\n";
-				while (getline(myfile, line)) {
-					
-					output+= line;
-					output+="\n";
-				}
-				strcpy(tmp_header, ok_response_f);
-			}
-			
-			else{
-				cerr << "file not opened\n";
+			if((sock=open(mypath, O_RDONLY)) < 0) {
+				cerr << "Opening failed.\n";
 				strcpy(tmp_header, notok_response);
 				ok = false;
+			}else {
+				strcpy(tmp_header, ok_response_f);
+				cerr << "Reading file\n";
+				readnbytes(sock, readfile, BUFSIZE);
+				cout << readfile << endl;
 			}
-			if (output.length() > 0) {
-				cerr << output << endl;
-			}
+			
+			// string line;
+			// fstream myfile;
+			// myfile.open(path);
+			// if (myfile.is_open()) {
+				// cerr << "file opened\n";
+				// while (getline(myfile, line)) {
+					
+					// output+= line;
+					// output+="\n";
+				// }
+				// strcpy(tmp_header, ok_response_f);
+			// }
+			
+			// else{
+				// cerr << "file not opened\n";
+				// strcpy(tmp_header, notok_response);
+				// ok = false;
+			// }
+			// if (output.length() > 0) {
+				// cerr << output << endl;
+			// }
 		}
 	}
 	
   /* send response */
-  char * outbuf = new char[output.length()+1];
+ // char * outbuf = new char[output.length()+1];
   
   cout << "About to write." << endl;
   cout << ok << endl;
@@ -246,28 +257,27 @@ int handle_connection(int sock)  //sock = cfd
 	minet_write(fd2, tmp_header, BUFSIZE);
 
     /* send file */
-	strcpy(outbuf,output.c_str());
-	minet_write(fd2, outbuf, BUFSIZE);
+	//strcpy(outbuf,output.c_str());
+	minet_write(fd2, readfile, BUFSIZE);
   }
   else // send error response
   {
-	cout << "is it going to work?" << endl;
+	cout << "Sending bad message to client (fuck you)" << endl;
 	if (minet_write(fd2, tmp_header, strlen(tmp_header)) < 0) {
 		cerr <<"Write failed" << endl;
 		minet_perror("reason: ");
-		die(fd2);
 	}
-	cout << "YESSSSSS" <<endl;
+	cout << "Sent " << tmp_header << " to client\n";
   }
 	
-  /* close fd2et and free space */
-	delete [] outbuf;
-	die(fd2);
+  /* close socket and free space */
+	//delete [] outbuf;
+	
 
 // cerr << "JUST WRITE." << endl;
 // minet_write(fd2, notok_response, BUFSIZE);
 // cerr << "WRITTEN." << endl;
-
+	die(fd2);
 
   if (ok)
     return 0;
