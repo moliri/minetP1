@@ -98,11 +98,11 @@ int main(int argc, char * argv[]) {
     client_sa.sin_port = htons(0);
 
     /* connect socket */
-	if (minet_bind(sock, &client_sa) < 0) {
+	/*if (minet_bind(sock, &client_sa) < 0) {
 		cerr << "Can't bind socket." << endl;
 		minet_perror("reason:");
 		die(sock);
-    }
+    }*/
 	 cerr << "Socket bound" << endl;
 	if (minet_connect(sock, &server_sa) < 0) {
 		cerr << "Can't connect socket." << endl;
@@ -148,7 +148,7 @@ int main(int argc, char * argv[]) {
 		//Skip "HTTP/1.0"
 		//remove the '\0'
 		// Normal reply has return code 200
-		cout << "reading headers into mybuf\n";
+		//cout << "reading headers into mybuf\n";
 		minet_read(sock, mybuf, BUFSIZE);
 
     }
@@ -157,28 +157,28 @@ int main(int argc, char * argv[]) {
 	}
 	strcpy(buf,mybuf);
 
-	cout << "entering read loop\n";
+	//cout << "entering read loop\n";
 	//read the info from the socket that was sent by the server
 	while (1) {
-		cout << "reading.\n";
+		//cout << "reading.\n";
 		if ((rc = minet_read(sock, mybuf, BUFSIZE)) < 0) {
-			cerr << "Read failed." << endl;
-			minet_perror("reason:");
+			//cerr << "Read failed." << endl;
+			//minet_perror("reason:");
 			break;
 		}
-		cout << "reading..\n";
+		//cout << "reading..\n";
 		if (rc == 0) {
 			cerr << "Done." << endl;
 			break;
 		}
-		cout << "reading...\n";
+		//cout << "reading...\n";
 		if (minet_write(sock, mybuf, BUFSIZE) < 0) {
-			cerr << "Write failed." << endl;
-			minet_perror("reason:");
+			//cerr << "Write failed." << endl;
+			//minet_perror("reason:");
 			break;
 		}
     }
-	cout << "exiting read loop\n";
+	//cout << "exiting read loop\n";
 	string strng = (string) mybuf;
 	unsigned pos = strng.find("<!DOCTYPE html>");
 	strng = strng.substr(pos);
