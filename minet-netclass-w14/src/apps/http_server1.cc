@@ -1,5 +1,5 @@
 ///Authors: Jordan Geltner and Leesha Maliakal (January 30, 2014)
-///Errors: server has issues opening files, and cuts client's connection when writing to client socket
+///Errors: server does not send error correctly
 #include "minet_socket.h"
 #include <stdlib.h>
 #include <ctype.h>
@@ -89,7 +89,7 @@ int main(int argc,char *argv[])
     }
 
   /* start listening */
-   rc = minet_listen(fd,1);
+   rc = minet_listen(fd,5);
    if (rc < 0)
    {
 		cerr << "Can't listen on socket.\n";
@@ -104,17 +104,21 @@ int main(int argc,char *argv[])
   while(1)
   {
     /* handle connections */
-    rc = handle_connection(fd);
+	sock2 = minet_accept(fd,&client_sa);
+	if (sock2 < 0)
+	{
+		minet_perror("Failed to accept connection!\n");
+		continue;
+	}
+    rc = handle_connection(sock2);
   }
-  cout << "Connection handled\n";
-  minet_close(fd);
 }
 
 int handle_connection(int sock)  //sock = server sock
 {
   char filename[FILENAMESIZE+1];
   int rc;
-  int fd2; //ends up holding client sock
+  int fd,fd2; //ends up holding client sock
   struct stat filestat;
   struct sockaddr_in client_sa;
   char buf[BUFSIZE+1];
@@ -134,20 +138,17 @@ int handle_connection(int sock)  //sock = server sock
   bool ok=true;
   char tmp_header[BUFSIZE];
   string output;
+  char * mypath;
   fd_set* set;
-	cout << "Accepting socket. \n";
-  fd2 = minet_accept(sock, &client_sa);//not sure if this should be sa or sa2 -jg; should be sa, aka the client one, not the server - lm
   /* first read loop -- get request and headers*/
-  if (fd2 < 0) {
-	cerr << "Accepting socket failed.";
-  }
   
   cout << "Reading from socket."  << endl;
-  rc = minet_read(fd2,buf,BUFSIZE+1);
+  rc = minet_read(sock,buf,BUFSIZE+1);
   if (rc<0){
 	cerr << "Read failed.\n";
 	minet_perror("reason:");
-	die(fd2);
+	minet_close(sock);
+	return -1;
 	}
   if (rc==0){
 	cerr << "Done.\n";
@@ -163,7 +164,6 @@ int handle_connection(int sock)  //sock = server sock
 	if(pos1<0) {
 		cerr << "First substring position not right" << endl;
 		strcpy(tmp_header, notok_response);
-		die(sock);
 	}
 	else {
 		mybuf = mybuf.substr(pos1/*, (bufLength+1)*/);
@@ -174,22 +174,21 @@ int handle_connection(int sock)  //sock = server sock
 		if (pos3 < 0) {
 			cerr << "Second substring position not right" << endl;
 			strcpy(tmp_header, notok_response);
-			die(sock);
+			minet_close(sock);
 		}
 		else {
 			//if all the substrints are right, we can take the path from the get request
 			string path = mybuf.substr(pos1+4, pos3-4);
 			cout << "Second substring ok." << endl;
-			cerr << path << endl;
-			char * mypath;
+			//cerr << path << endl;
 			mypath  = (char*)malloc(100);
 			strcpy(mypath,path.c_str());
 						
 			/* Assumption: this is a GET request and filename contains no spaces
 			
 			/* try opening the file */
-			cerr << "Opening file\n";
-			if((sock=open(mypath, O_RDONLY)) < 0) {
+			cerr << "Opening " << path << endl;;
+			if((fd=open(mypath, O_RDONLY)) < 0) {
 				cerr << "Opening failed.\n";
 				//put the bad response into the header buffer
 				strcpy(tmp_header, notok_response);
@@ -197,11 +196,11 @@ int handle_connection(int sock)  //sock = server sock
 			}else {
 				//put the good response into the header buffer
 				strcpy(tmp_header, ok_response_f);
-				cerr << "Reading file\n";
+				cerr << "Reading " << path << endl;
 				//read from the file into the body buffer
-				readnbytes(sock, readfile, BUFSIZE);
-				cout << "file read\n";
-				//cout << readfile << endl;
+				readnbytes(fd, readfile, BUFSIZE);
+				cout << mypath << " read\n";
+				cout << readfile << endl;
 			}
 		}
 	}
@@ -214,31 +213,39 @@ int handle_connection(int sock)  //sock = server sock
   {
     /* send headers */
 	cout << "Sending good header\n";
-	minet_write(fd2, tmp_header, BUFSIZE);
+	minet_write(sock, ok_response, strlen(ok_response));
 
-	cout << "good header sent, sending file\n";
+	cout << "good header sent, sending " << mypath << endl;
     /* send file */
-	minet_write(fd2, readfile, BUFSIZE);
+	minet_write(sock, readfile, strlen(readfile));
   }
   else // send error response
   {
 	cout << "Sending bad header\n";
-	if (writenbytes(fd2, tmp_header, strlen(tmp_header)) < 0) {
+	if (minet_write(sock, notok_response, strlen(notok_response)) < 0) {
 		cerr <<"Write failed" << endl;
 		minet_perror("reason: ");
+		minet_close(sock);
+		return -1;
 	}
 	cout << "Sent bad header to client\n";
   }
   cout << "Write finished\n\n\n";//, closing socket\n";
 	
   /* close socket and free space */
-	//minet_close(fd2);
 	//cout << "socket closed, returning\n";
+	close(fd);
+	minet_close(sock);
 
   if (ok)
+  {
+	//minet_close(fd2);
     return 0;
-  else
+}
+  else{
+    //minet_close(fd2);
     return -1;
+	}
 }
 
 int readnbytes(int fd,char *buf,int size)
