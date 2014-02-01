@@ -1,5 +1,5 @@
 ///Authors: Jordan Geltner and Leesha Maliakal (January 30, 2014)
-///Errors: server does not send error correctly
+///Errors: server does not send headers correctly
 #include "minet_socket.h"
 #include <stdlib.h>
 #include <ctype.h>
@@ -100,7 +100,7 @@ int main(int argc,char *argv[])
 	}
 
   /* connection handling loop */
-  //cout << "Handling connection. \n";
+  ////cout << "Handling connection. \n";
   while(1)
   {
     /* handle connections */
@@ -143,7 +143,7 @@ int handle_connection(int sock)  //sock = server sock
   fd_set* set;
   /* first read loop -- get request and headers*/
   
-  //cout << "Reading from socket."  << endl;
+  ////cout << "Reading from socket."  << endl;
   rc = minet_read(sock,buf,BUFSIZE+1);
   if (rc<0){
 	minet_perror("reason:");
@@ -170,7 +170,7 @@ int handle_connection(int sock)  //sock = server sock
 		cerr << mybuf << endl;
 		//unsigned pos2 = pos1+4;
 		unsigned pos3= mybuf.find(" HTTP");
-		//cout << "First substring ok" << endl;
+		////cout << "First substring ok" << endl;
 		if (pos3 < 0) {
 			cerr << "Second substring position not right" << endl;
 			strcpy(tmp_header, notok_response);
@@ -179,7 +179,7 @@ int handle_connection(int sock)  //sock = server sock
 		else {
 			//if all the substrints are right, we can take the path from the get request
 			string path = mybuf.substr(pos1+4, pos3-4);
-			//cout << "Second substring ok." << endl;
+			////cout << "Second substring ok." << endl;
 			//cerr << path << endl;
 			mypath  = (char*)malloc(100);
 			strcpy(mypath,path.c_str());
@@ -198,30 +198,30 @@ int handle_connection(int sock)  //sock = server sock
 				cerr << "Reading " << path << endl;
 				//read from the file into the body buffer
 				readnbytes(fd, readfile, BUFSIZE);
-				//cout << mypath << " read\n";
-				//cout << readfile << endl;
+				////cout << mypath << " read\n";
+				////cout << readfile << endl;
 			}
 		}
 	}
 	
   /* send response */
   
-  //cout << "About to write." << endl;
-  ////cout << ok << endl;
+  ////cout << "About to write." << endl;
+  //////cout << ok << endl;
   if (ok)
   {
     /* send headers */
-	//cout << "Sending good header\n";
+	////cout << "Sending good header\n";
 	sprintf(ok_response,ok_response_f,300);
 	minet_write(sock, ok_response, strlen(ok_response));
 
-	//cout << "good header sent, sending " << mypath << endl;
+	////cout << "good header sent, sending " << mypath << endl;
     /* send file */
 	minet_write(sock, readfile, strlen(readfile));
   }
   else // send error response
   {
-	//cout << "Sending bad header\n";
+	////cout << "Sending bad header\n";
 	sprintf(notok_response_f,notok_response,300);
 	if (minet_write(sock, notok_response_f, strlen(notok_response_f)) < 0) {
 		cerr <<"Write failed" << endl;
@@ -229,12 +229,12 @@ int handle_connection(int sock)  //sock = server sock
 		minet_close(sock);
 		return -1;
 	}
-	//cout << "Sent bad header to client\n";
+	////cout << "Sent bad header to client\n";
   }
-  //cout << "Write finished\n\n\n";//, closing socket\n";
+  ////cout << "Write finished\n\n\n";//, closing socket\n";
 	
   /* close socket and free space */
-	////cout << "socket closed, returning\n";
+	//////cout << "socket closed, returning\n";
 	close(fd);
 	minet_close(sock);
 

@@ -1,3 +1,4 @@
+//AUTHORS: Jordan Geltner and Leesha Maliakal
 #include "minet_socket.h"
 #include <stdlib.h>
 #include <iostream>
@@ -148,7 +149,7 @@ int main(int argc, char * argv[]) {
 		//Skip "HTTP/1.0"
 		//remove the '\0'
 		// Normal reply has return code 200
-		//cout << "reading headers into mybuf\n";
+		////cout << "reading headers into mybuf\n";
 		minet_read(sock, mybuf, BUFSIZE);
 
     }
@@ -157,34 +158,34 @@ int main(int argc, char * argv[]) {
 	}
 	strcpy(buf,mybuf);
 
-	//cout << "entering read loop\n";
+	////cout << "entering read loop\n";
 	//read the info from the socket that was sent by the server
 	while (1) {
-		//cout << "reading.\n";
+		////cout << "reading.\n";
 		if ((rc = minet_read(sock, mybuf, BUFSIZE)) < 0) {
 			//cerr << "Read failed." << endl;
 			//minet_perror("reason:");
 			break;
 		}
-		//cout << "reading..\n";
+		////cout << "reading..\n";
 		if (rc == 0) {
 			cerr << "Done." << endl;
 			break;
 		}
-		//cout << "reading...\n";
+		////cout << "reading...\n";
 		if (minet_write(sock, mybuf, BUFSIZE) < 0) {
 			//cerr << "Write failed." << endl;
 			//minet_perror("reason:");
 			break;
 		}
     }
-	//cout << "exiting read loop\n";
+	////cout << "exiting read loop\n";
 	string strng = (string) mybuf;
 	unsigned pos = strng.find("<!DOCTYPE html>");
 	strng = strng.substr(pos);
 	
 	if (ok) {
-		cout << strng << endl;//the body of the reply
+		//cout << strng << endl;//the body of the reply
 		return 0;
     } 
 	else {
