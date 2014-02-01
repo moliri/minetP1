@@ -161,7 +161,7 @@ int main(int argc, char * argv[]) {
 	//read the info from the socket that was sent by the server
 	while (1) {
 		cout << "reading.\n";
-		if ((rc = minet_read(sock, buf, BUFSIZE)) < 0) {
+		if ((rc = minet_read(sock, mybuf, BUFSIZE)) < 0) {
 			cerr << "Read failed." << endl;
 			minet_perror("reason:");
 			break;
@@ -172,7 +172,7 @@ int main(int argc, char * argv[]) {
 			break;
 		}
 		cout << "reading...\n";
-		if (minet_write(sock, buf, BUFSIZE) < 0) {
+		if (minet_write(sock, mybuf, BUFSIZE) < 0) {
 			cerr << "Write failed." << endl;
 			minet_perror("reason:");
 			break;
